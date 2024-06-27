@@ -1,0 +1,85 @@
+# Importing libraries
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load dataset
+# For this example, we'll use a synthetic dataset. In practice, you'd load your actual dataset.
+url = "https://raw.githubusercontent.com/IBM/customer-churn-prediction/master/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+df = pd.read_csv(url)
+
+# Data preprocessing
+# Dropping customerID column
+df.drop(columns=['customerID'], inplace=True)
+
+# Convert 'TotalCharges' to numeric, coerce errors to NaN, and fill them with median
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
+
+# Encoding categorical variables
+label_encoders = {}
+for column in df.select_dtypes(include=['object']).columns:
+    label_encoders[column] = LabelEncoder()
+    df[column] = label_encoders[column].fit_transform(df[column])
+
+# Defining features and target variable
+X = df.drop(columns=['Churn'])
+y = df['Churn']
+
+# Splitting data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Feature scaling
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Logistic Regression model
+log_reg = LogisticRegression()
+log_reg.fit(X_train, y_train)
+log_reg_pred = log_reg.predict(X_test)
+log_reg_accuracy = accuracy_score(y_test, log_reg_pred)
+print(f'Logistic Regression Accuracy: {log_reg_accuracy}')
+print('Logistic Regression Classification Report')
+print(classification_report(y_test, log_reg_pred))
+
+# Decision Tree model
+tree = DecisionTreeClassifier(random_state=42)
+tree.fit(X_train, y_train)
+tree_pred = tree.predict(X_test)
+tree_accuracy = accuracy_score(y_test, tree_pred)
+print(f'Decision Tree Accuracy: {tree_accuracy}')
+print('Decision Tree Classification Report')
+print(classification_report(y_test, tree_pred))
+
+# Confusion matrix for Logistic Regression
+log_reg_cm = confusion_matrix(y_test, log_reg_pred)
+sns.heatmap(log_reg_cm, annot=True, fmt='d')
+plt.title('Logistic Regression Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# Confusion matrix for Decision Tree
+tree_cm = confusion_matrix(y_test, tree_pred)
+sns.heatmap(tree_cm, annot=True, fmt='d')
+plt.title('Decision Tree Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# Choosing the best model
+if log_reg_accuracy > tree_accuracy:
+    best_model = 'Logistic Regression'
+    best_accuracy = log_reg_accuracy
+else:
+    best_model = 'Decision Tree'
+    best_accuracy = tree_accuracy
+
+print(f'The best model is {best_model} with an accuracy of {best_accuracy}')
